@@ -34,7 +34,7 @@ tilt_wide <- tilt_wide %>%
   rowwise() %>%
   mutate(tilt_force = mean(c(trial_1, trial_2, trial_3, trial_4, trial_5,
                                    trial_6, trial_7, trial_8, trial_9, trial_10,
-                                   trial_11, trial_12, trial_12, trial_14), na.rm = TRUE)) %>%
+                                   trial_11, trial_12, trial_13, trial_14), na.rm = TRUE)) %>%
   as.data.frame()
 
 straight_wide <- straight_data %>%
@@ -48,7 +48,7 @@ straight_wide <- straight_wide %>%
   rowwise() %>%
   mutate(straight_force = mean(c(trial_1, trial_2, trial_3, trial_4, trial_5,
                            trial_6, trial_7, trial_8, trial_9, trial_10,
-                           trial_11, trial_12, trial_12, trial_14), na.rm = TRUE)) %>%
+                           trial_11, trial_12, trial_13, trial_14), na.rm = TRUE)) %>%
   as.data.frame()
 
 # Join datasets
@@ -102,6 +102,13 @@ paired_data %>% shapiro_test(differences)
 
 ## Paired t-test  -----------------------------
 
+rep_data_long$condition <- as.factor(rep_data_long$condition)
+
+# R compares conditions alphabetically, I am reordering here to match the original study
+
+rep_data_long$condition <- forcats::fct_relevel(rep_data_long$condition, "tilt_force", "straight_force")
+
+
 replication_ttest <- t.test(force_fc ~ condition, rep_data_long, 
                   alternative = "two.sided", paired = TRUE, conf.level = 0.95) %>%
   tidy()
@@ -109,24 +116,59 @@ replication_ttest
 
 ### Replication effect size calculation ------
 
-rep_dz <- smd_calc(
-  x = paired_data$differences,
-  paired = TRUE,
-  var.equal = FALSE,
-  alpha = 0.05,
-  mu = 0,
-  bias_correction = FALSE,
-  rm_correction = FALSE,
-  glass = NULL,
-  smd_ci = "nct")
+rep_dz <- d.dep.t.diff(mdiff = rep_desc$mean_diff[1], 
+                        sddiff = rep_desc$sd_diff[1], 
+                        n = rep_desc$count[1], a = 0.05)
 rep_dz
 
-# Replication analyses - z-test --------
+## Calculate Original ES --------
+
+#Original descriptives
+
+orig_values <- data_frame(
+  ori_pval = 0.046,
+  N = 12,
+  m1 = 0.13,
+  sd1 = 0.04,
+  m2 = 0.12,
+  sd2 = 0.04)
+
+# Estimating the t-value
+
+quantile = 1 - orig_values$ori_pval/2 # for two-tailed
+
+ori_tval <- qt(quantile, df = 11)
+
+
+# Estimating the original effect size
+
+ori_dz <- d.dep.t.diff.t(t = ori_tval, n = orig_values$N, a = 0.05)
+ori_dz
+
+ori_dav <- d.dep.t.avg(m1 = orig_values$m1, m2 = orig_values$m2, 
+                       sd1 = orig_values$sd1, sd2 = orig_values$sd2,
+                       n = orig_values$N, a = 0.05)
+ori_dav
+
+# Looks like dav is the closest to reported ES of 0.3
+
+# Replication analyses - z-test (dz) --------
+
+rep_test <- compare_smd(
+  smd1 = ori_dz$d,
+  n1 = orig_values$N,
+  smd2 = rep_dz$d,
+  n2 = rep_desc$count[1],
+  paired = TRUE,
+  alternative = "greater")
+rep_test
+
+# Replication analyses - z-test (reported original es) --------
 
 rep_test <- compare_smd(
   smd1 = 0.3,
-  n1 = 12,
-  smd2 = rep_dz$estimate,
+  n1 = orig_values$N,
+  smd2 = rep_dz$d,
   n2 = rep_desc$count[1],
   paired = TRUE,
   alternative = "greater")
