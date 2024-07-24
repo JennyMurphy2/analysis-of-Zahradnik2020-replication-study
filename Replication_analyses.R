@@ -6,6 +6,8 @@ library(MOTE)
 library(tidyverse)
 library(janitor)
 
+set.seed(21)
+
 # Replication data prep ---------------------
 rep_data <- read_csv("Volleyball_Replication_Data.csv") %>%
   clean_names()
