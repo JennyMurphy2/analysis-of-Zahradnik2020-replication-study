@@ -111,10 +111,14 @@ rep_data_long$condition <- as.factor(rep_data_long$condition)
 rep_data_long$condition <- forcats::fct_relevel(rep_data_long$condition, "tilt_force", "straight_force")
 
 
-replication_ttest <- t.test(force_fc ~ condition, rep_data_long, 
-                  alternative = "two.sided", paired = TRUE, conf.level = 0.95) %>%
-  tidy()
+#replication_ttest <- t.test(force_fc ~ condition, rep_data_long, 
+#                  alternative = "two.sided", paired = TRUE, conf.level = 0.95) %>%
+#  tidy()
+#replication_ttest
+
+replication_ttest <- t.test(paired_data$tilt_force, paired_data$straight_force, paired = TRUE)
 replication_ttest
+
 
 ### Replication effect size calculation ------
 
@@ -122,6 +126,11 @@ rep_dz <- d.dep.t.diff(mdiff = rep_desc$mean_diff[1],
                         sddiff = rep_desc$sd_diff[1], 
                         n = rep_desc$count[1], a = 0.05)
 rep_dz
+
+rep_dav <- d.dep.t.avg(m1 = rep_desc$mean[2], m2 = rep_desc$mean[1], 
+                       sd1 = rep_desc$sd[2], sd2 = rep_desc$sd[1],
+                       n = rep_desc$count[1], a = 0.05)
+rep_dav
 
 ## Calculate Original ES --------
 
@@ -170,7 +179,7 @@ rep_test
 rep_test <- compare_smd(
   smd1 = 0.3,
   n1 = orig_values$N,
-  smd2 = rep_dz$d,
+  smd2 = rep_dav$d,
   n2 = rep_desc$count[1],
   paired = TRUE,
   alternative = "greater")
